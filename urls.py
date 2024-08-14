@@ -1,11 +1,7 @@
 from django.urls import path
-from .views import DirectorListCreate, DirectorRetrieve, MovieListCreate, MovieRetrieve, ReviewListCreate, ReviewRetrieve
+from .views import MovieListView, DirectorListView
 
 urlpatterns = [
-    path('directors/', DirectorListCreate.as_view(), name='director-list'),
-    path('directors/<int:pk>/', DirectorRetrieve.as_view(), name='director-detail'),
-    path('movies/', MovieListCreate.as_view(), name='movie-list'),
-    path('movies/<int:pk>/', MovieRetrieve.as_view(), name='movie-detail'),
-    path('reviews/', ReviewListCreate.as_view(), name='review-list'),
-    path('reviews/<int:pk>/', ReviewRetrieve.as_view(), name='review-detail'),
+    path('api/v1/movies/reviews/', MovieListView.as_view(), name='movie-list'),
+    path('api/v1/directors/', DirectorListView.as_view(), name='director-list'),
 ]

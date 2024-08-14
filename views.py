@@ -1,27 +1,11 @@
 from rest_framework import generics
-from .models import Director, Movie, Review
-from .serializers import DirectorSerializer, MovieSerializer, ReviewSerializer
+from .models import Movie, Director
+from .serializers import MovieSerializer, DirectorSerializer
 
-class DirectorListCreate(generics.ListCreateAPIView):
-    queryset = Director.objects.all()
-    serializer_class = DirectorSerializer
-
-class DirectorRetrieve(generics.RetrieveAPIView):
-    queryset = Director.objects.all()
-    serializer_class = DirectorSerializer
-
-class MovieListCreate(generics.ListCreateAPIView):
+class MovieListView(generics.ListAPIView):
     queryset = Movie.objects.all()
     serializer_class = MovieSerializer
 
-class MovieRetrieve(generics.RetrieveAPIView):
-    queryset = Movie.objects.all()
-    serializer_class = MovieSerializer
-
-class ReviewListCreate(generics.ListCreateAPIView):
-    queryset = Review.objects.all()
-    serializer_class = ReviewSerializer
-
-class ReviewRetrieve(generics.RetrieveAPIView):
-    queryset = Review.objects.all()
-    serializer_class = ReviewSerializer
+class DirectorListView(generics.ListAPIView):
+    queryset = Director.objects.all()
+    serializer_class = DirectorSerializer
