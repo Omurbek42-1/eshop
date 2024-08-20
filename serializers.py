@@ -1,32 +1,29 @@
 from rest_framework import serializers
-from .models import Movie, Review, Director
+from .models import Director, Movie, Review
+
+class DirectorSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Director
+        fields = '__all__'
+
+class MovieSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Movie
+        fields = '__all__'
 
 class ReviewSerializer(serializers.ModelSerializer):
     class Meta:
         model = Review
-        fields = ['id', 'movie', 'user', 'content', 'stars']
+        fields = '__all__'
+
 
 class MovieSerializer(serializers.ModelSerializer):
-    reviews = ReviewSerializer(many=True, read_only=True)
-    rating = serializers.SerializerMethodField()
-
     class Meta:
         model = Movie
-        fields = ['id', 'title', 'reviews', 'rating']
+        fields = '__all__'
 
-    def get_rating(self, obj):
-        reviews = obj.reviews.all()
-        if not reviews:
-            return None
-        return sum(review.stars for review in reviews) / reviews.count()
-
-class DirectorSerializer(serializers.ModelSerializer):
-    movies_count = serializers.SerializerMethodField()
-
-    class Meta:
-        model = Director
-        fields = ['id', 'name', 'movies_count']
-
-    def get_movies_count(self, obj):
-        return obj.movies.count()
+    def validate(self, data):
+        if 'title' in data and len(data['title']) < 5:
+            raise serializers.ValidationError("Title must be at least 5 characters long.")
+        return data
 

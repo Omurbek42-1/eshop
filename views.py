@@ -1,11 +1,16 @@
-from rest_framework import generics
-from .models import Movie, Director
-from .serializers import MovieSerializer, DirectorSerializer
+from rest_framework import viewsets
+from .models import Director, Movie, Review
+from .serializers import DirectorSerializer, MovieSerializer, ReviewSerializer
 
-class MovieListView(generics.ListAPIView):
+class DirectorViewSet(viewsets.ModelViewSet):
+    queryset = Director.objects.all()
+    serializer_class = DirectorSerializer
+
+class MovieViewSet(viewsets.ModelViewSet):
     queryset = Movie.objects.all()
     serializer_class = MovieSerializer
 
-class DirectorListView(generics.ListAPIView):
-    queryset = Director.objects.all()
-    serializer_class = DirectorSerializer
+class ReviewViewSet(viewsets.ModelViewSet):
+    queryset = Review.objects.all()
+    serializer_class = ReviewSerializer
+
