@@ -1,110 +1,93 @@
 from flask import Flask, request, jsonify
-from flask_restful import Api, Resource, abort
+from flask_sqlalchemy import SQLAlchemy
+from flask_mail import Mail, Message
+import random
+import string
 
 app = Flask(__name__)
-api = Api(app)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
+app.config['MAIL_SERVER'] = 'smtp.example.com'  # Настройте ваш почтовый сервер
+app.config['MAIL_PORT'] = 587
+app.config['MAIL_USERNAME'] = 'your-email@example.com'
+app.config['MAIL_PASSWORD'] = 'your-email-password'
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USE_SSL'] = False
 
-# Словари для хранения данных
-directors = {}
-movies = {}
-reviews = {}
+db = SQLAlchemy(app)
+mail = Mail(app)
 
-# Идентификаторы для новых записей
-director_id_counter = 1
-movie_id_counter = 1
-review_id_counter = 1
+# Модель пользователя
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(120), unique=True, nullable=False)
+    password = db.Column(db.String(120), nullable=False)
+    is_active = db.Column(db.Boolean, default=False)
+    confirmation_code = db.Column(db.String(6), unique=True, nullable=True)
 
-# Ресурс для работы с режиссерами
-class DirectorResource(Resource):
-    def get(self, id):
-        if id not in directors:
-            abort(404, message="Director not found")
-        return jsonify(directors[id])
+    def __repr__(self):
+        return f'<User {self.email}>'
 
-    def post(self):
-        global director_id_counter
-        data = request.get_json()
-        data['id'] = director_id_counter
-        directors[director_id_counter] = data
-        director_id_counter += 1
-        return jsonify(data), 201
+# Инициализация базы данных
+with app.app_context():
+    db.create_all()
 
-    def put(self, id):
-        if id not in directors:
-            abort(404, message="Director not found")
-        data = request.get_json()
-        data['id'] = id
-        directors[id] = data
-        return jsonify(data)
+# Генерация случайного кода
+def generate_confirmation_code():
+    return ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
 
-    def delete(self, id):
-        if id not in directors:
-            abort(404, message="Director not found")
-        del directors[id]
-        return '', 204
+# Регистрация
+@app.route('/api/v1/users/register', methods=['POST'])
+def register():
+    data = request.get_json()
+    email = data.get('email')
+    password = data.get('password')
 
-# Ресурс для работы с фильмами
-class MovieResource(Resource):
-    def get(self, id):
-        if id not in movies:
-            abort(404, message="Movie not found")
-        return jsonify(movies[id])
+    if User.query.filter_by(email=email).first():
+        return jsonify({'message': 'User already exists'}), 400
 
-    def post(self):
-        global movie_id_counter
-        data = request.get_json()
-        data['id'] = movie_id_counter
-        movies[movie_id_counter] = data
-        movie_id_counter += 1
-        return jsonify(data), 201
+    confirmation_code = generate_confirmation_code()
+    new_user = User(email=email, password=password, confirmation_code=confirmation_code)
+    db.session.add(new_user)
+    db.session.commit()
 
-    def put(self, id):
-        if id not in movies:
-            abort(404, message="Movie not found")
-        data = request.get_json()
-        data['id'] = id
-        movies[id] = data
-        return jsonify(data)
+    # Отправка письма с кодом подтверждения
+    msg = Message('Confirm your email', sender='your-email@example.com', recipients=[email])
+    msg.body = f'Your confirmation code is {confirmation_code}'
+    mail.send(msg)
 
-    def delete(self, id):
-        if id not in movies:
-            abort(404, message="Movie not found")
-        del movies[id]
-        return '', 204
+    return jsonify({'message': 'User registered, please check your email to confirm your account'}), 201
 
-# Ресурс для работы с отзывами
-class ReviewResource(Resource):
-    def get(self, id):
-        if id not in reviews:
-            abort(404, message="Review not found")
-        return jsonify(reviews[id])
+# Подтверждение пользователя
+@app.route('/api/v1/users/confirm/', methods=['POST'])
+def confirm_user():
+    data = request.get_json()
+    email = data.get('email')
+    confirmation_code = data.get('confirmation_code')
 
-    def post(self):
-        global review_id_counter
-        data = request.get_json()
-        data['id'] = review_id_counter
-        reviews[review_id_counter] = data
-        review_id_counter += 1
-        return jsonify(data), 201
+    user = User.query.filter_by(email=email, confirmation_code=confirmation_code).first()
+    if not user:
+        return jsonify({'message': 'Invalid confirmation code or email'}), 400
 
-    def put(self, id):
-        if id not in reviews:
-            abort(404, message="Review not found")
-        data = request.get_json()
-        data['id'] = id
-        reviews[id] = data
-        return jsonify(data)
+    user.is_active = True
+    user.confirmation_code = None
+    db.session.commit()
 
-    def delete(self, id):
-        if id not in reviews:
-            abort(404, message="Review not found")
-        del reviews[id]
-        return '', 204
+    return jsonify({'message': 'User confirmed successfully'}), 200
 
-# Добавляем ресурсы к API
-api.add_resource(DirectorResource, '/api/v1/directors/', '/api/v1/directors/<int:id>')
-api.add_resource(MovieResource, '/api/v1/movies/', '/api/v1/movies/<int:id>')
-api.add_resource(ReviewResource, '/api/v1/reviews/', '/api/v1/reviews/<int:id>')
+# Авторизация
+@app.route('/api/v1/users/login', methods=['POST'])
+def login():
+    data = request.get_json()
+    email = data.get('email')
+    password = data.get('password')
+
+    user = User.query.filter_by(email=email, password=password).first()
+    if user and user.is_active:
+        return jsonify({'message': 'Login successful'}), 200
+    elif user and not user.is_active:
+        return jsonify({'message': 'Account not confirmed'}), 403
+    else:
+        return jsonify({'message': 'Invalid email or password'}), 401
 
 if __name__ == '__main__':
     app.run(debug=True)
