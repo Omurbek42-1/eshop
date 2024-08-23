@@ -1,29 +1,19 @@
 from rest_framework import serializers
-from .models import Director, Movie, Review
+from .models import User, ConfirmationCode
 
-class DirectorSerializer(serializers.ModelSerializer):
+class UserSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Director
-        fields = '__all__'
+        model = User
+        fields = ['email', 'password']
+        extra_kwargs = {
+            'password': {'write_only': True}
+        }
 
-class MovieSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Movie
-        fields = '__all__'
+    def create(self, validated_data):
+        user = User.objects.create_user(**validated_data)
+        ConfirmationCode.objects.create(user=user)
+        return user
 
-class ReviewSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Review
-        fields = '__all__'
-
-
-class MovieSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Movie
-        fields = '__all__'
-
-    def validate(self, data):
-        if 'title' in data and len(data['title']) < 5:
-            raise serializers.ValidationError("Title must be at least 5 characters long.")
-        return data
-
+class ConfirmationCodeSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    code = serializers.CharField(max_length=6)

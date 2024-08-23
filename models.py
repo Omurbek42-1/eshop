@@ -1,23 +1,38 @@
 from django.db import models
+from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
+import random
+import string
 
-class Review(models.Model):
-    movie = models.ForeignKey('Movie', on_delete=models.CASCADE, related_name='reviews')
-    user = models.ForeignKey('auth.User', on_delete=models.CASCADE)
-    content = models.TextField()
-    stars = models.PositiveIntegerField(choices=[(i, i) for i in range(1, 6)], default=1)
+class CustomUserManager(BaseUserManager):
+    def create_user(self, email, password=None, **extra_fields):
+        if not email:
+            raise ValueError('The Email field must be set')
+        email = self.normalize_email(email)
+        user = self.model(email=email, **extra_fields)
+        user.set_password(password)
+        user.save(using=self._db)
+        return user
 
-    def __str__(self):
-        return f'Review for {self.movie.title} by {self.user.username}'
+    def create_superuser(self, email, password=None, **extra_fields):
+        extra_fields.setdefault('is_staff', True)
+        extra_fields.setdefault('is_superuser', True)
+        return self.create_user(email, password, **extra_fields)
 
-class Movie(models.Model):
-    title = models.CharField(max_length=255)
-    director = models.ForeignKey('Director', on_delete=models.CASCADE, related_name='movies')
+def generate_confirmation_code():
+    return ''.join(random.choices(string.digits, k=6))
 
-    def __str__(self):
-        return self.title
+class User(AbstractBaseUser):
+    email = models.EmailField(unique=True)
+    is_active = models.BooleanField(default=False)
+    is_staff = models.BooleanField(default=False)
+    # Добавьте другие поля, если необходимо
 
-class Director(models.Model):
-    name = models.CharField(max_length=255)
+    objects = CustomUserManager()
 
-    def __str__(self):
-        return self.name
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = []
+
+class ConfirmationCode(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    code = models.CharField(max_length=6, default=generate_confirmation_code)
+    created_at = models.DateTimeField(auto_now_add=True)
