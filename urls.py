@@ -1,7 +1,10 @@
-from django.contrib import admin
-from django.urls import path, include
+from django.urls import path
+from .views import IndexView, MyModelDetailView, MyModelCreateView, MyModelUpdateView, MyModelDeleteView
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('api/v1/users/', include('users.urls')),
+    path('', IndexView.as_view(), name='index'),
+    path('detail/<int:pk>/', MyModelDetailView.as_view(), name='detail'),
+    path('create/', MyModelCreateView.as_view(), name='create'),
+    path('update/<int:pk>/', MyModelUpdateView.as_view(), name='update'),
+    path('delete/<int:pk>/', MyModelDeleteView.as_view(), name='delete'),
 ]

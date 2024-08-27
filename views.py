@@ -1,24 +1,32 @@
-from rest_framework import generics, status
-from rest_framework.response import Response
-from rest_framework.decorators import api_view
-from .models import CustomUser
-from .serializers import RegisterSerializer, ConfirmationSerializer
+from django.urls import reverse_lazy
+from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
+from .models import MyModel
+from .forms import MyModelForm
 
-class RegisterView(generics.CreateAPIView):
-    serializer_class = RegisterSerializer
+class IndexView(ListView):
+    model = MyModel
+    template_name = 'index.html'
+    context_object_name = 'objects'
 
-@api_view(['POST'])
-def confirm_user(request):
-    serializer = ConfirmationSerializer(data=request.data)
-    if serializer.is_valid():
-        code = serializer.validated_data.get('code')
-        try:
-            user = CustomUser.objects.get(confirmation_code=code)
-            user.is_active = True
-            user.confirmation_code = ''
-            user.save()
-            return Response({'status': 'User confirmed'}, status=status.HTTP_200_OK)
-        except CustomUser.DoesNotExist:
-            return Response({'error': 'Invalid confirmation code'}, status=status.HTTP_400_BAD_REQUEST)
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+class MyModelDetailView(DetailView):
+    model = MyModel
+    template_name = 'detail.html'
+    context_object_name = 'object'
+
+class MyModelCreateView(CreateView):
+    model = MyModel
+    form_class = MyModelForm
+    template_name = 'form.html'
+    success_url = reverse_lazy('index')
+
+class MyModelUpdateView(UpdateView):
+    model = MyModel
+    form_class = MyModelForm
+    template_name = 'form.html'
+    success_url = reverse_lazy('index')
+
+class MyModelDeleteView(DeleteView):
+    model = MyModel
+    template_name = 'confirm_delete.html'
+    success_url = reverse_lazy('index')
 
