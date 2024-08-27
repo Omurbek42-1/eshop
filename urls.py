@@ -1,8 +1,7 @@
-from products import views
-from django.urls import path
+from django.contrib import admin
+from django.urls import path, include
 
 urlpatterns = [
-    path('', views.product_list_create_api_view),
-    path('<int:id./', views.product_detail_api_view),
-
+    path('admin/', admin.site.urls),
+    path('api/v1/users/', include('users.urls')),
 ]

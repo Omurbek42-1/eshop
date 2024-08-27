@@ -1,19 +1,16 @@
 from rest_framework import serializers
-from .models import User, ConfirmationCode
+from .models import CustomUser
 
-class UserSerializer(serializers.ModelSerializer):
+class RegisterSerializer(serializers.ModelSerializer):
     class Meta:
-        model = User
-        fields = ['email', 'password']
-        extra_kwargs = {
-            'password': {'write_only': True}
-        }
+        model = CustomUser
+        fields = ('username', 'password', 'email')
+        extra_kwargs = {'password': {'write_only': True}}
 
     def create(self, validated_data):
-        user = User.objects.create_user(**validated_data)
-        ConfirmationCode.objects.create(user=user)
+        user = CustomUser.objects.create_user(**validated_data)
+        user.generate_confirmation_code()
         return user
 
-class ConfirmationCodeSerializer(serializers.Serializer):
-    email = serializers.EmailField()
+class ConfirmationSerializer(serializers.Serializer):
     code = serializers.CharField(max_length=6)
